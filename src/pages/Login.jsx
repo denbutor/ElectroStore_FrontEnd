@@ -1,10 +1,12 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 
 const Login = () => {
     const { login } = useContext(AuthContext);
     const { showToast } = useContext(ToastContext);
+    const { t } = useContext(LanguageContext);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -14,9 +16,9 @@ const Login = () => {
         setLoading(true);
         try {
             await login(email, password);
-            showToast("Login successful!", "success");
+            showToast(t.auth.loginSuccess, "success");
         } catch (err) {
-            showToast(err.response?.data?.detail || "Invalid credentials.", "error");
+            showToast(err.response?.data?.detail || t.auth.loginFailed, "error");
         } finally {
             setLoading(false);
         }
@@ -24,13 +26,13 @@ const Login = () => {
 
     return (
         <div className="page">
-            <h1>Login</h1>
+            <h1>{t.auth.loginTitle}</h1>
             <form className="form" onSubmit={handleSubmit}>
                 <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
+                    placeholder={t.auth.email}
                     className="input"
                     required
                 />
@@ -38,12 +40,12 @@ const Login = () => {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
+                    placeholder={t.auth.password}
                     className="input"
                     required
                 />
                 <button type="submit" className="button" disabled={loading}>
-                    {loading ? "Logging in..." : "Login"}
+                    {loading ? t.auth.loggingIn : t.auth.loginBtn}
                 </button>
             </form>
         </div>

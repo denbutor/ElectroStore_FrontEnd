@@ -17,6 +17,7 @@ export const streamAiChat = async ({
     sessionId,
     message,
     modelType = "flash",
+    preferredLang = "en",
     onChunk,
     onDone,
     onError,
@@ -37,6 +38,7 @@ export const streamAiChat = async ({
                 session_id: sessionId,
                 message,
                 model_type: modelType,
+                preferred_lang: preferredLang,
             }),
         });
 
@@ -85,4 +87,3 @@ export const streamAiChat = async ({
         onError?.(err);
     }
 };
-

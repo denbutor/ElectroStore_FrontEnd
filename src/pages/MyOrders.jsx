@@ -2,10 +2,12 @@ import { useEffect, useState, useContext } from "react";
 import orderService from "../services/orderService";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 
 const MyOrders = () => {
     const { user } = useContext(AuthContext);
     const { showToast } = useContext(ToastContext);
+    const { t, language } = useContext(LanguageContext);
     const [orders, setOrders] = useState([]);
     const [payingId, setPayingId] = useState(null);
 
@@ -28,29 +30,36 @@ const MyOrders = () => {
             );
             setOrders(updatedList);
             localStorage.setItem(storageKey, JSON.stringify(updatedList));
-            showToast(`Order #${orderId} paid successfully!`, "success");
+            showToast(t.orders.paidSuccess.replace("{id}", orderId), "success");
         } catch (err) {
-            showToast(err.response?.data?.detail || "Payment failed", "error");
+            showToast(err.response?.data?.detail || t.orders.paymentFailed, "error");
         } finally {
             setPayingId(null);
         }
     };
 
+    const formatStatus = (status) => {
+        return t.orders.statuses?.[status] || status;
+    };
+
     return (
         <div className="page">
-            <h1>My orders</h1>
+            <h1>{t.orders.title}</h1>
             {orders.length === 0 ? (
-                <p>You have no orders yet.</p>
+                <p>{t.orders.empty}</p>
             ) : (
                 <ul className="admin-list">
                     {orders.map((o) => (
                         <li key={o.id} className="admin-item">
-                            <h3>Order #{o.id}</h3>
-                            <p><strong>Status:</strong> {o.status}</p>
-                            <p><strong>Total amount:</strong> {o.total_amount} $</p>
-                            <p><strong>Shipping address:</strong> {o.shipping_address}</p>
+                            <h3>{t.orders.order} #{o.id}</h3>
+                            <p><strong>{t.orders.status}:</strong> {formatStatus(o.status)}</p>
+                            <p><strong>{t.orders.totalAmount}:</strong> {o.total_amount} $</p>
+                            <p><strong>{t.orders.shippingAddress}:</strong> {o.shipping_address}</p>
                             {o.created_at && (
-                                <p><strong>Date:</strong> {new Date(o.created_at).toLocaleString()}</p>
+                                <p>
+                                    <strong>{t.orders.date}:</strong>{" "}
+                                    {new Date(o.created_at).toLocaleString(language === "uk" ? "uk-UA" : "en-US")}
+                                </p>
                             )}
                             {o.items?.map((item) => (
                                 <div key={item.product_id}>
@@ -64,7 +73,7 @@ const MyOrders = () => {
                                     disabled={payingId === o.id}
                                     onClick={() => handlePay(o.id)}
                                 >
-                                    {payingId === o.id ? "Processing payment..." : "Pay Order"}
+                                    {payingId === o.id ? t.orders.processingPayment : t.orders.payOrder}
                                 </button>
                             )}
                         </li>

@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 import { Link, useNavigate } from "react-router-dom";
 import { resolveImageUrl } from "../utils/image";
 import "./ProductCard.css";
@@ -12,20 +13,21 @@ const ProductCard = ({ product }) => {
     const { addToCart } = useContext(CartContext);
     const { isAuthenticated } = useContext(AuthContext);
     const { showToast } = useContext(ToastContext);
+    const { t } = useContext(LanguageContext);
     const [quantity, setQuantity] = useState(1);
     const navigate = useNavigate();
 
     const handleAdd = async () => {
         if (!isAuthenticated) {
-            showToast("Please login to add products to cart", "error");
+            showToast(t.products.loginToAdd, "error");
             navigate("/login");
             return;
         }
         try {
             await addToCart(product.id, quantity);
-            showToast("Product added to cart", "success");
+            showToast(t.products.addedToCart, "success");
         } catch {
-            showToast("Error adding to cart", "error");
+            showToast(t.products.addError, "error");
         }
     };
 
@@ -40,7 +42,7 @@ const ProductCard = ({ product }) => {
                 <h2 className="product-name">{product.title}</h2>
                 <p className="product-price">{product.price} $</p>
                 <p style={{ fontSize: "13px", color: product.stock > 0 ? "#28a745" : "#dc3545" }}>
-                    {product.stock > 0 ? `In stock: ${product.stock}` : "Out of stock"}
+                    {product.stock > 0 ? `${t.products.inStock}: ${product.stock}` : t.products.outOfStock}
                 </p>
             </Link>
             <div style={{ padding: "0 15px 15px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -66,7 +68,7 @@ const ProductCard = ({ product }) => {
                     onClick={handleAdd}
                     disabled={product.stock === 0}
                 >
-                    Add to Cart
+                    {t.products.addToCart}
                 </button>
             </div>
         </div>

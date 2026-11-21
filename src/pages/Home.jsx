@@ -1,15 +1,19 @@
+import { useContext } from "react";
 import { Link } from "react-router-dom";
+import { LanguageContext } from "../context/LanguageContext";
 
 const Home = () => {
+    const { t } = useContext(LanguageContext);
+
     return (
         <div className="page" style={{ textAlign: "center", paddingTop: "60px" }}>
-            <h1>Welcome to ElectroStore!</h1>
+            <h1>{t.home.title}</h1>
             <p style={{ maxWidth: "600px", margin: "0 auto 30px" }}>
-                Modern electronics store powered by microservices. Browse our catalog or ask our AI Assistant in the top bar for personalized recommendations.
+                {t.home.subtitle}
             </p>
             <div style={{ display: "flex", gap: "15px", justifyContent: "center" }}>
                 <Link to="/products" className="button">
-                    Browse Catalog
+                    {t.home.browseCatalog}
                 </Link>
             </div>
         </div>

@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 import { resolveImageUrl } from "../utils/image";
 
 const FALLBACK_IMAGE = "https://placehold.co/100x100?text=No+Image";
@@ -9,13 +10,14 @@ const FALLBACK_IMAGE = "https://placehold.co/100x100?text=No+Image";
 const Cart = () => {
     const { cartItems, cartLoading, addToCart, removeFromCart, clearCart } = useContext(CartContext);
     const { showToast } = useContext(ToastContext);
+    const { t } = useContext(LanguageContext);
     const navigate = useNavigate();
 
     const handleIncrement = async (productId) => {
         try {
             await addToCart(productId, 1);
         } catch {
-            showToast("Error increasing quantity", "error");
+            showToast(t.cart.incError, "error");
         }
     };
 
@@ -27,16 +29,16 @@ const Cart = () => {
         try {
             await addToCart(productId, -1);
         } catch {
-            showToast("Error decreasing quantity", "error");
+            showToast(t.cart.decError, "error");
         }
     };
 
     const handleRemove = async (productId) => {
         try {
             await removeFromCart(productId);
-            showToast("Item removed", "success");
+            showToast(t.cart.itemRemoved, "success");
         } catch {
-            showToast("Error removing product", "error");
+            showToast(t.cart.removeError, "error");
         }
     };
 
@@ -45,13 +47,13 @@ const Cart = () => {
         0
     );
 
-    if (cartLoading) return <div className="page"><p>Loading...</p></div>;
+    if (cartLoading) return <div className="page"><p>{t.cart.loading}</p></div>;
 
     return (
         <div className="page">
-            <h1>Cart</h1>
+            <h1>{t.cart.title}</h1>
             {cartItems.length === 0 ? (
-                <p>Your cart is empty</p>
+                <p>{t.cart.empty}</p>
             ) : (
                 <>
                     <ul className="cart-list">
@@ -64,7 +66,7 @@ const Cart = () => {
                                 />
                                 <div className="cart-item-info">
                                     <h3>{item.product?.title}</h3>
-                                    <p>{item.product?.price} $ / pcs</p>
+                                    <p>{item.product?.price} $ {t.cart.perPcs}</p>
                                     <div>
                                         <button
                                             className="button"
@@ -84,7 +86,7 @@ const Cart = () => {
                                             onClick={() => handleRemove(item.product_id)}
                                             style={{ marginLeft: "10px", backgroundColor: "#dc3545" }}
                                         >
-                                            Delete
+                                            {t.cart.delete}
                                         </button>
                                     </div>
                                 </div>
@@ -93,20 +95,20 @@ const Cart = () => {
                     </ul>
 
                     <div className="cart-actions">
-                        <h2>Total cost: {total} $</h2>
+                        <h2>{t.cart.totalCost}: {total} $</h2>
                         <button
                             className="button"
                             style={{ backgroundColor: "#6c757d" }}
                             onClick={async () => {
                                 try {
                                     await clearCart();
-                                    showToast("Cart cleared", "success");
+                                    showToast(t.cart.cartCleared, "success");
                                 } catch {
-                                    showToast("Error clearing cart", "error");
+                                    showToast(t.cart.clearError, "error");
                                 }
                             }}
                         >
-                            Clear cart
+                            {t.cart.clearCart}
                         </button>
 
                         <button
@@ -114,7 +116,7 @@ const Cart = () => {
                             style={{ marginLeft: "10px" }}
                             onClick={() => navigate("/checkout")}
                         >
-                            Proceed to Checkout
+                            {t.cart.proceedToCheckout}
                         </button>
                     </div>
                 </>

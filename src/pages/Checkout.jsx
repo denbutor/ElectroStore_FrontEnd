@@ -2,6 +2,7 @@ import { useContext, useState } from "react";
 import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 import orderService from "../services/orderService";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +10,7 @@ const Checkout = () => {
     const { cartItems, fetchCart } = useContext(CartContext);
     const { user } = useContext(AuthContext);
     const { showToast } = useContext(ToastContext);
+    const { t } = useContext(LanguageContext);
     const navigate = useNavigate();
 
     const [shippingAddress, setShippingAddress] = useState("");
@@ -21,15 +23,14 @@ const Checkout = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (cartItems.length === 0) return showToast("Your cart is empty!", "error");
-        if (!shippingAddress.trim()) return showToast("Enter shipping address", "error");
+        if (cartItems.length === 0) return showToast(t.checkout.emptyCartError, "error");
+        if (!shippingAddress.trim()) return showToast(t.checkout.enterAddressError, "error");
 
         setLoading(true);
         try {
             const res = await orderService.checkout(shippingAddress.trim());
             const createdOrder = res.data;
 
-            // Зберігаємо замовлення локально для відображення в MyOrders (оскільки GET /orders у сервісі поки відсутній)
             const storageKey = `electrostore_orders_${user?.id || "guest"}`;
             const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
             localStorage.setItem(
@@ -50,10 +51,10 @@ const Checkout = () => {
             );
 
             await fetchCart();
-            showToast(`Order #${createdOrder.id} created!`, "success");
+            showToast(t.checkout.orderCreated.replace("{id}", createdOrder.id), "success");
             navigate("/orders");
         } catch (err) {
-            showToast(err.response?.data?.detail || "Failed to create order.", "error");
+            showToast(err.response?.data?.detail || t.checkout.orderFailed, "error");
         } finally {
             setLoading(false);
         }
@@ -61,11 +62,11 @@ const Checkout = () => {
 
     return (
         <div className="page">
-            <h1>Checkout</h1>
+            <h1>{t.checkout.title}</h1>
             <form className="form" onSubmit={handleSubmit}>
                 <textarea
                     name="shipping_address"
-                    placeholder="Shipping address (City, Street, Building / Post Office)"
+                    placeholder={t.checkout.addressPlaceholder}
                     value={shippingAddress}
                     onChange={(e) => setShippingAddress(e.target.value)}
                     required
@@ -73,17 +74,17 @@ const Checkout = () => {
                     className="input"
                 />
 
-                <h3>Order Summary ({total} $)</h3>
+                <h3>{t.checkout.orderSummary} ({total} $)</h3>
                 <ul className="cart-list">
                     {cartItems.map((item) => (
                         <li key={item.product_id}>
-                            {item.product?.title} — {item.quantity} pcs × {item.product?.price} $
+                            {item.product?.title} — {item.quantity} {t.checkout.pcs} × {item.product?.price} $
                         </li>
                     ))}
                 </ul>
 
                 <button className="button" type="submit" disabled={loading}>
-                    {loading ? "Processing..." : "Place Order"}
+                    {loading ? t.checkout.processing : t.checkout.placeOrder}
                 </button>
             </form>
         </div>

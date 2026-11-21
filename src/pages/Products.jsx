@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import productService from "../services/productService";
 import ProductCard from "../components/ProductCard";
+import { LanguageContext } from "../context/LanguageContext";
 
 const Products = () => {
+    const { t } = useContext(LanguageContext);
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -63,7 +65,7 @@ const Products = () => {
 
     return (
         <div className="page">
-            <h1>Products</h1>
+            <h1>{t.products.title}</h1>
 
             <form
                 onSubmit={handleFilter}
@@ -74,14 +76,14 @@ const Products = () => {
                     className="input"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search by title..."
+                    placeholder={t.products.searchPlaceholder}
                 />
                 <select
                     className="input"
                     value={categoryId}
                     onChange={handleCategoryChange}
                 >
-                    <option value="">All categories</option>
+                    <option value="">{t.products.allCategories}</option>
                     {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
                             {cat.name}
@@ -93,7 +95,7 @@ const Products = () => {
                     type="number"
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder="Min price"
+                    placeholder={t.products.minPrice}
                     style={{ width: "130px" }}
                 />
                 <input
@@ -101,11 +103,11 @@ const Products = () => {
                     type="number"
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder="Max price"
+                    placeholder={t.products.maxPrice}
                     style={{ width: "130px" }}
                 />
                 <button type="submit" className="button">
-                    Filter
+                    {t.products.filter}
                 </button>
 
                 <select
@@ -113,15 +115,15 @@ const Products = () => {
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value)}
                 >
-                    <option value="">Sort by...</option>
-                    <option value="price-asc">Price ↑</option>
-                    <option value="price-desc">Price ↓</option>
-                    <option value="title">Title A-Z</option>
+                    <option value="">{t.products.sortBy}</option>
+                    <option value="price-asc">{t.products.priceAsc}</option>
+                    <option value="price-desc">{t.products.priceDesc}</option>
+                    <option value="title">{t.products.titleAsc}</option>
                 </select>
             </form>
 
             {filteredAndSorted.length === 0 ? (
-                <p>No products found.</p>
+                <p>{t.products.notFound}</p>
             ) : (
                 <div className="products-grid">
                     {filteredAndSorted.map((product) => (

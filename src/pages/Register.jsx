@@ -1,10 +1,12 @@
 import { useState, useContext } from "react";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 
 const Register = () => {
     const { showToast } = useContext(ToastContext);
+    const { t } = useContext(LanguageContext);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
@@ -29,11 +31,11 @@ const Register = () => {
                     full_name: res.data.full_name,
                 })
             );
-            showToast("Registration successful!", "success");
+            showToast(t.auth.registerSuccess, "success");
             navigate("/login");
         } catch (err) {
             showToast(
-                err.response?.data?.detail || "Registration failed. Email may already exist.",
+                err.response?.data?.detail || t.auth.registerFailed,
                 "error"
             );
         } finally {
@@ -43,11 +45,11 @@ const Register = () => {
 
     return (
         <div className="page">
-            <h1>Register</h1>
+            <h1>{t.auth.registerTitle}</h1>
             <form className="form" onSubmit={handleSubmit}>
                 <input
                     name="full_name"
-                    placeholder="Full Name"
+                    placeholder={t.auth.fullName}
                     type="text"
                     value={formData.full_name}
                     onChange={handleChange}
@@ -56,7 +58,7 @@ const Register = () => {
                 />
                 <input
                     name="email"
-                    placeholder="Email"
+                    placeholder={t.auth.email}
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
@@ -65,7 +67,7 @@ const Register = () => {
                 />
                 <input
                     name="password"
-                    placeholder="Password"
+                    placeholder={t.auth.password}
                     type="password"
                     value={formData.password}
                     onChange={handleChange}
@@ -73,7 +75,7 @@ const Register = () => {
                     className="input"
                 />
                 <button className="button" type="submit" disabled={loading}>
-                    {loading ? "Registering..." : "Register"}
+                    {loading ? t.auth.registering : t.auth.registerBtn}
                 </button>
             </form>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import productService from "../services/productService";
 import { ToastContext } from "../context/ToastContext";
+import { LanguageContext } from "../context/LanguageContext";
 import { resolveImageUrl } from "../utils/image";
 
 const FALLBACK_IMAGE = "https://placehold.co/80x80?text=No+Image";
@@ -11,6 +12,7 @@ const AdminProducts = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const { showToast } = useContext(ToastContext);
+    const { t } = useContext(LanguageContext);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -96,7 +98,7 @@ const AdminProducts = () => {
                     setSpecPairs(entries.length > 0 ? entries : [{ key: "", value: "" }]);
                 }
             } catch {
-                showToast("Cannot switch to Key-Value: fix invalid JSON first", "error");
+                showToast(t.admin.invalidJsonSwitchError, "error");
                 return;
             }
         }
@@ -125,7 +127,7 @@ const AdminProducts = () => {
             const cleanVal = value.trim();
             if (!cleanKey && !cleanVal) continue;
             if (!cleanKey) {
-                throw new Error("Specification key cannot be empty when value is provided");
+                throw new Error(t.admin.emptySpecKeyError);
             }
             const asNumber = Number(cleanVal);
             result[cleanKey] = cleanVal !== "" && !Number.isNaN(asNumber) ? asNumber : cleanVal;
@@ -138,11 +140,11 @@ const AdminProducts = () => {
 
         const isCreatingNewCategory = selectedCategory === NEW_CATEGORY_VALUE;
         if (!selectedCategory) {
-            showToast("Please select a category or create a new one", "error");
+            showToast(t.admin.selectCategoryError, "error");
             return;
         }
         if (isCreatingNewCategory && !newCategoryName.trim()) {
-            showToast("Please enter the new category name", "error");
+            showToast(t.admin.enterCategoryError, "error");
             return;
         }
 
@@ -185,10 +187,10 @@ const AdminProducts = () => {
             setRawJsonSpecs(DEFAULT_JSON_EXAMPLE);
             setImageFile(null);
 
-            showToast("Product created!", "success");
+            showToast(t.admin.productCreated, "success");
             await Promise.all([fetchProducts(), fetchCategories()]);
         } catch (err) {
-            showToast(err.response?.data?.detail || "Failed to create product", "error");
+            showToast(err.response?.data?.detail || t.admin.createFailed, "error");
         } finally {
             setSubmitting(false);
         }
@@ -198,97 +200,97 @@ const AdminProducts = () => {
         if (!file) return;
         try {
             await productService.uploadImage(productId, file);
-            showToast("Image uploaded to MinIO!", "success");
+            showToast(t.admin.imageUploaded, "success");
             fetchProducts();
         } catch {
-            showToast("Failed to upload image", "error");
+            showToast(t.admin.imageUploadFailed, "error");
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm("Delete this product?")) return;
+        if (!confirm(t.admin.confirmDelete)) return;
         try {
             await productService.delete(id);
-            showToast("Product deleted", "success");
+            showToast(t.admin.productDeleted, "success");
             fetchProducts();
         } catch {
-            showToast("Failed to delete product", "error");
+            showToast(t.admin.deleteFailed, "error");
         }
     };
 
     return (
         <div className="page">
-            <h1>Admin: Manage Products</h1>
+            <h1>{t.admin.title}</h1>
 
             <form className="form" onSubmit={handleCreate} style={{ marginBottom: "40px" }}>
-                <h3>Create New Product</h3>
+                <h3>{t.admin.createTitle}</h3>
 
-                <label style={{ fontWeight: 600 }}>Title</label>
+                <label style={{ fontWeight: 600 }}>{t.admin.fieldTitle}</label>
                 <input
                     type="text"
                     name="title"
-                    placeholder="e.g. AMD Ryzen 7 7800X3D"
+                    placeholder={t.admin.titlePlaceholder}
                     value={formData.title}
                     onChange={handleChange}
                     required
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>Description</label>
+                <label style={{ fontWeight: 600 }}>{t.admin.fieldDescription}</label>
                 <textarea
                     name="description"
-                    placeholder="Short product description..."
+                    placeholder={t.admin.descriptionPlaceholder}
                     value={formData.description}
                     onChange={handleChange}
                     required
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>Price ($)</label>
+                <label style={{ fontWeight: 600 }}>{t.admin.fieldPrice}</label>
                 <input
                     type="number"
                     step="0.01"
                     min="0"
                     name="price"
-                    placeholder="e.g. 399.99"
+                    placeholder={t.admin.pricePlaceholder}
                     value={formData.price}
                     onChange={handleChange}
                     required
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>Stock quantity</label>
+                <label style={{ fontWeight: 600 }}>{t.admin.fieldStock}</label>
                 <input
                     type="number"
                     min="0"
                     name="stock"
-                    placeholder="e.g. 15"
+                    placeholder={t.admin.stockPlaceholder}
                     value={formData.stock}
                     onChange={handleChange}
                     required
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>Category</label>
+                <label style={{ fontWeight: 600 }}>{t.admin.fieldCategory}</label>
                 <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     required
                     className="input"
                 >
-                    <option value="">-- Select category --</option>
+                    <option value="">{t.admin.selectCategoryPlaceholder}</option>
                     {categories.map((cat) => (
                         <option key={cat.id} value={cat.id}>
                             {cat.name}
                         </option>
                     ))}
-                    <option value={NEW_CATEGORY_VALUE}>+ Create new category...</option>
+                    <option value={NEW_CATEGORY_VALUE}>{t.admin.createNewCategoryOption}</option>
                 </select>
 
                 {selectedCategory === NEW_CATEGORY_VALUE && (
                     <input
                         type="text"
-                        placeholder="Enter new category name (e.g. SSD Drives)"
+                        placeholder={t.admin.newCategoryPlaceholder}
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         required
@@ -298,7 +300,7 @@ const AdminProducts = () => {
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
                     <label style={{ fontWeight: 600 }}>
-                        Specifications (JSON, e.g. socket, cores, DDR)
+                        {t.admin.fieldSpecs}
                     </label>
                     <div style={{ display: "flex", gap: "6px" }}>
                         <button
@@ -311,7 +313,7 @@ const AdminProducts = () => {
                                 backgroundColor: specMode === "pairs" ? "#0d6efd" : "#6c757d",
                             }}
                         >
-                            Key : Value
+                            {t.admin.modePairs}
                         </button>
                         <button
                             type="button"
@@ -323,7 +325,7 @@ const AdminProducts = () => {
                                 backgroundColor: specMode === "json" ? "#0d6efd" : "#6c757d",
                             }}
                         >
-                            Raw JSON
+                            {t.admin.modeJson}
                         </button>
                     </div>
                 </div>
@@ -334,7 +336,7 @@ const AdminProducts = () => {
                             <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                                 <input
                                     type="text"
-                                    placeholder="Key (e.g. socket)"
+                                    placeholder={t.admin.specKeyPlaceholder}
                                     value={pair.key}
                                     onChange={(e) => handleSpecPairChange(idx, "key", e.target.value)}
                                     className="input"
@@ -342,7 +344,7 @@ const AdminProducts = () => {
                                 />
                                 <input
                                     type="text"
-                                    placeholder="Value (e.g. AM5)"
+                                    placeholder={t.admin.specValuePlaceholder}
                                     value={pair.value}
                                     onChange={(e) => handleSpecPairChange(idx, "value", e.target.value)}
                                     className="input"
@@ -366,7 +368,7 @@ const AdminProducts = () => {
                             onClick={addSpecPair}
                             style={{ backgroundColor: "#6c757d", alignSelf: "flex-start", padding: "6px 12px", fontSize: "13px" }}
                         >
-                            + Add specification
+                            {t.admin.addSpecBtn}
                         </button>
                     </div>
                 ) : (
@@ -380,7 +382,7 @@ const AdminProducts = () => {
                     />
                 )}
 
-                <label style={{ fontWeight: 600 }}>Product Image</label>
+                <label style={{ fontWeight: 600 }}>{t.admin.fieldImage}</label>
                 <input
                     type="file"
                     accept="image/*"
@@ -389,7 +391,7 @@ const AdminProducts = () => {
                 />
 
                 <button type="submit" className="button" disabled={submitting}>
-                    {submitting ? "Creating..." : "Create Product"}
+                    {submitting ? t.admin.creatingBtn : t.admin.createBtn}
                 </button>
             </form>
 
@@ -409,15 +411,15 @@ const AdminProducts = () => {
                             <div>
                                 <h3>#{product.id} — {product.title}</h3>
                                 <p>
-                                    Price: {product.price} $ | Stock: {product.stock} | Category:{" "}
-                                    {product.category_name || "Uncategorized"}
+                                    {t.admin.priceLabel}: {product.price} $ | {t.admin.stockLabel}: {product.stock} | {t.admin.categoryLabel}:{" "}
+                                    {product.category_name || t.admin.uncategorized}
                                 </p>
                             </div>
                         </div>
 
                         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
                             <label className="button" style={{ backgroundColor: "#6c757d", cursor: "pointer" }}>
-                                Upload Image
+                                {t.admin.uploadImageBtn}
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -430,7 +432,7 @@ const AdminProducts = () => {
                                 style={{ backgroundColor: "#dc3545" }}
                                 onClick={() => handleDelete(product.id)}
                             >
-                                Delete
+                                {t.admin.deleteBtn}
                             </button>
                         </div>
                     </li>

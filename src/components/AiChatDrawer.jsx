@@ -1,5 +1,8 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment, useContext } from "react";
 import { streamAiChat } from "../services/aiService";
+import { LanguageContext } from "../context/LanguageContext";
+import { ToastContext } from "../context/ToastContext";
+import { TRANSLATIONS } from "../utils/translations";
 import "./AiChatDrawer.css";
 
 const SESSION_KEY = "electrostore_ai_session";
@@ -56,19 +59,39 @@ const FormattedMessage = ({ content }) => {
 };
 
 const AiChatDrawer = ({ isOpen, onClose }) => {
+    const {
+        language,
+        t,
+        isAiLangLocked,
+        tryAutoSwitchFromAiMessage,
+        unlockAiLanguage,
+    } = useContext(LanguageContext);
+    const { showToast } = useContext(ToastContext);
+
     const [sessionId, setSessionId] = useState(() => getOrCreateSessionId());
     const [modelType, setModelType] = useState(
         () => localStorage.getItem(MODEL_KEY) || "flash"
     );
-    const [messages, setMessages] = useState([
+    const [messages, setMessages] = useState(() => [
         {
             role: "assistant",
-            content: "Hi! I’m the ElectroStore AI consultant. I can help you choose electronics or compare specifications.",
+            content: t.chat.welcome,
+            isSystemGreeting: true,
         },
     ]);
     const [input, setInput] = useState("");
     const [isStreaming, setIsStreaming] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Оновлюємо стартове привітання при зміні мови, якщо користувач ще не почав діалог
+    useEffect(() => {
+        setMessages((prev) => {
+            if (prev.length === 1 && prev[0].isSystemGreeting) {
+                return [{ ...prev[0], content: t.chat.welcome }];
+            }
+            return prev;
+        });
+    }, [t.chat.welcome]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -85,10 +108,12 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         localStorage.removeItem(SESSION_KEY);
         const freshId = getOrCreateSessionId();
         setSessionId(freshId);
+        unlockAiLanguage();
         setMessages([
             {
                 role: "assistant",
-                content: "A new session has started. How can I help?",
+                content: t.chat.newSession,
+                isSystemGreeting: true,
             },
         ]);
     };
@@ -97,6 +122,14 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         e.preventDefault();
         const trimmed = input.trim();
         if (!trimmed || isStreaming) return;
+
+        // Автоматичне визначення і перемикання мови на першому змістовному повідомленні (> 3 слів)
+        const switchedTo = tryAutoSwitchFromAiMessage(trimmed);
+        const effectiveLang = switchedTo || language;
+        if (switchedTo) {
+            const targetDict = TRANSLATIONS[switchedTo] || t;
+            showToast(targetDict.chat.langAutoSwitchedToast, "success");
+        }
 
         const currentSession = getOrCreateSessionId();
         setSessionId(currentSession);
@@ -113,6 +146,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
             sessionId: currentSession,
             message: trimmed,
             modelType,
+            preferredLang: effectiveLang,
             onChunk: (chunk) => {
                 setMessages((prev) => {
                     const updated = [...prev];
@@ -133,7 +167,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                     const lastIdx = updated.length - 1;
                     updated[lastIdx] = {
                         ...updated[lastIdx],
-                        content: updated[lastIdx].content || "Error connecting to the AI service.",
+                        content: updated[lastIdx].content || t.chat.connectionError,
                     };
                     return updated;
                 });
@@ -143,9 +177,24 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
     };
 
     return (
-        <aside className="ai-chat-panel" aria-label="AI Assistant">
+        <aside className="ai-chat-panel" aria-label={t.chat.title}>
             <div className="ai-chat-header">
-                <span>AI Assistant</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>{t.chat.title}</span>
+                    {isAiLangLocked && (
+                        <span
+                            title="Auto language switch is locked after first meaningful message"
+                            style={{
+                                fontSize: "10px",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                background: "rgba(255,255,255,0.22)",
+                            }}
+                        >
+                            🔒 {language.toUpperCase()}
+                        </span>
+                    )}
+                </div>
                 <div className="ai-chat-header-actions">
                     <select
                         value={modelType}
@@ -167,7 +216,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                         onClick={handleResetSession}
                         title="Clear dialogue context"
                     >
-                        New Chat
+                        {t.chat.newChat}
                     </button>
                     <button
                         type="button"
@@ -203,13 +252,13 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                 <input
                     type="text"
                     className="ai-chat-input"
-                    placeholder="Ask about products..."
+                    placeholder={t.chat.placeholder}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     disabled={isStreaming}
                 />
                 <button type="submit" className="ai-chat-send" disabled={isStreaming || !input.trim()}>
-                    Send
+                    {t.chat.send}
                 </button>
             </form>
         </aside>
@@ -217,4 +266,3 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
 };
 
 export default AiChatDrawer;
-
