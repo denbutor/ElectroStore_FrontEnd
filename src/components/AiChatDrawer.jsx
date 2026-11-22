@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, Fragment, useContext } from "react";
 import { streamAiChat } from "../services/aiService";
 import { LanguageContext } from "../context/LanguageContext";
 import { ToastContext } from "../context/ToastContext";
-import { TRANSLATIONS } from "../utils/translations";
+import { getTranslations } from "../utils/translations";
 import "./AiChatDrawer.css";
 
 const SESSION_KEY = "electrostore_ai_session";
@@ -63,7 +63,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         language,
         t,
         isAiLangLocked,
-        tryAutoSwitchFromAiMessage,
+        applyAiDetectedLanguage,
         unlockAiLanguage,
     } = useContext(LanguageContext);
     const { showToast } = useContext(ToastContext);
@@ -83,7 +83,6 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
     const [isStreaming, setIsStreaming] = useState(false);
     const messagesEndRef = useRef(null);
 
-    // Оновлюємо стартове привітання при зміні мови, якщо користувач ще не почав діалог
     useEffect(() => {
         setMessages((prev) => {
             if (prev.length === 1 && prev[0].isSystemGreeting) {
@@ -123,14 +122,6 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         const trimmed = input.trim();
         if (!trimmed || isStreaming) return;
 
-        // Автоматичне визначення і перемикання мови на першому змістовному повідомленні (> 3 слів)
-        const switchedTo = tryAutoSwitchFromAiMessage(trimmed);
-        const effectiveLang = switchedTo || language;
-        if (switchedTo) {
-            const targetDict = TRANSLATIONS[switchedTo] || t;
-            showToast(targetDict.chat.langAutoSwitchedToast, "success");
-        }
-
         const currentSession = getOrCreateSessionId();
         setSessionId(currentSession);
 
@@ -146,7 +137,15 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
             sessionId: currentSession,
             message: trimmed,
             modelType,
-            preferredLang: effectiveLang,
+            preferredLang: language,
+            allowUiLangSwitch: !isAiLangLocked,
+            onLanguageDetected: (detectedLang) => {
+                const switchedTo = applyAiDetectedLanguage(detectedLang);
+                if (switchedTo) {
+                    const targetDict = getTranslations(switchedTo);
+                    showToast(targetDict.chat.langAutoSwitchedToast, "success");
+                }
+            },
             onChunk: (chunk) => {
                 setMessages((prev) => {
                     const updated = [...prev];

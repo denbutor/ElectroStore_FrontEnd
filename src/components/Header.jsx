@@ -3,6 +3,7 @@ import { Link, NavLink } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { CartContext } from "../context/CartContext";
 import { LanguageContext } from "../context/LanguageContext";
+import { UI_LANGUAGES } from "../config/languages";
 import "./Header.css";
 
 const Header = ({ isChatOpen, onToggleChat }) => {
@@ -14,97 +15,132 @@ const Header = ({ isChatOpen, onToggleChat }) => {
 
     return (
         <header className="header">
-            <div className="container header-container">
-                <div className="logo">
-                    <Link to="/">ElectroStore</Link>
-                </div>
+            <div
+                className="container header-container"
+                style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "16px",
+                }}
+            >
+                {/* Ліва частина: логотип + основна навігація */}
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "20px",
+                        flexWrap: "wrap",
+                        minWidth: 0,
+                    }}
+                >
+                    <div className="logo" style={{ flexShrink: 0 }}>
+                        <Link to="/" style={{ whiteSpace: "nowrap" }}>
+                            ElectroStore
+                        </Link>
+                    </div>
 
-                <nav className="nav" style={{ alignItems: "center", flexWrap: "wrap" }}>
-                    <NavLink to="/" className="nav-link">
-                        {t.nav.home}
-                    </NavLink>
-                    <NavLink to="/products" className="nav-link">
-                        {t.nav.products}
-                    </NavLink>
-
-                    {isAuthenticated ? (
-                        <>
-                            <NavLink to="/cart" className="nav-link">
-                                {t.nav.cart} {totalCount > 0 ? `(${totalCount})` : ""}
-                            </NavLink>
-                            <NavLink to="/orders" className="nav-link">
-                                {t.nav.myOrders}
-                            </NavLink>
-                            <NavLink to="/profile" className="nav-link">
-                                {t.nav.profile}
-                            </NavLink>
-                            {isAdminOrManager && (
-                                <NavLink to="/admin/products" className="nav-link">
-                                    {t.nav.adminProducts}
-                                </NavLink>
-                            )}
-                            <button
-                                type="button"
-                                onClick={logout}
-                                className="nav-link"
-                                style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: "16px" }}
-                            >
-                                {t.nav.logout}
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <NavLink to="/login" className="nav-link">
-                                {t.nav.login}
-                            </NavLink>
-                            <NavLink to="/register" className="nav-link">
-                                {t.nav.register}
-                            </NavLink>
-                        </>
-                    )}
-
-                    {/* Ручний перемикач мови в хедері */}
-                    <div
-                        role="group"
-                        aria-label="Language switcher"
+                    <nav
+                        className="nav"
                         style={{
-                            display: "inline-flex",
-                            border: "1px solid rgba(255,255,255,0.7)",
-                            borderRadius: "6px",
-                            overflow: "hidden",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "14px",
+                            flexWrap: "wrap",
                         }}
                     >
-                        <button
-                            type="button"
-                            onClick={() => setManualLanguage("uk")}
-                            style={{
-                                padding: "4px 8px",
-                                border: "none",
-                                cursor: "pointer",
-                                fontWeight: "600",
-                                fontSize: "13px",
-                                backgroundColor: language === "uk" ? "#ffffff" : "transparent",
-                                color: language === "uk" ? "#0d6efd" : "#ffffff",
-                            }}
-                        >
-                            UA
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setManualLanguage("en")}
-                            style={{
-                                padding: "4px 8px",
-                                border: "none",
-                                cursor: "pointer",
-                                fontWeight: "600",
-                                fontSize: "13px",
-                                backgroundColor: language === "en" ? "#ffffff" : "transparent",
-                                color: language === "en" ? "#0d6efd" : "#ffffff",
-                            }}
-                        >
-                            EN
-                        </button>
-                    </div>
+                        <NavLink to="/" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                            {t.nav.home}
+                        </NavLink>
+                        <NavLink to="/products" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                            {t.nav.products}
+                        </NavLink>
+
+                        {isAuthenticated ? (
+                            <>
+                                <NavLink to="/cart" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                                    {t.nav.cart} {totalCount > 0 ? `(${totalCount})` : ""}
+                                </NavLink>
+                                <NavLink to="/orders" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                                    {t.nav.myOrders}
+                                </NavLink>
+                                <NavLink to="/profile" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                                    {t.nav.profile}
+                                </NavLink>
+                                {isAdminOrManager && (
+                                    <NavLink
+                                        to="/admin/products"
+                                        className="nav-link"
+                                        style={{ whiteSpace: "nowrap" }}
+                                    >
+                                        {t.nav.adminProducts}
+                                    </NavLink>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={logout}
+                                    className="nav-link"
+                                    style={{
+                                        background: "transparent",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        fontSize: "16px",
+                                        whiteSpace: "nowrap",
+                                    }}
+                                >
+                                    {t.nav.logout}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <NavLink to="/login" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                                    {t.nav.login}
+                                </NavLink>
+                                <NavLink to="/register" className="nav-link" style={{ whiteSpace: "nowrap" }}>
+                                    {t.nav.register}
+                                </NavLink>
+                            </>
+                        )}
+                    </nav>
+                </div>
+
+                {/* Права частина: закріплені вибір мови та кнопка AI-асистента */}
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        flexShrink: 0,
+                        marginLeft: "auto",
+                    }}
+                >
+                    <select
+                        aria-label="Language switcher"
+                        value={language}
+                        onChange={(e) => setManualLanguage(e.target.value)}
+                        style={{
+                            padding: "6px 8px",
+                            borderRadius: "6px",
+                            border: "1px solid rgba(255,255,255,0.8)",
+                            backgroundColor: "rgba(255,255,255,0.18)",
+                            color: "#ffffff",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                        }}
+                    >
+                        {UI_LANGUAGES.map((lang) => (
+                            <option
+                                key={lang.code}
+                                value={lang.code}
+                                style={{ color: "#222222", backgroundColor: "#ffffff" }}
+                            >
+                                {lang.shortLabel} · {lang.nativeName}
+                            </option>
+                        ))}
+                    </select>
 
                     <button
                         type="button"
@@ -117,11 +153,13 @@ const Header = ({ isChatOpen, onToggleChat }) => {
                             padding: "6px 12px",
                             cursor: "pointer",
                             fontWeight: "600",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
                         }}
                     >
                         {isChatOpen ? t.nav.hideAi : t.nav.aiAssistant}
                     </button>
-                </nav>
+                </div>
             </div>
         </header>
     );

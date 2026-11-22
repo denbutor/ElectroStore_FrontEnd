@@ -3,6 +3,7 @@ import orderService from "../services/orderService";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
 import { LanguageContext } from "../context/LanguageContext";
+import { getLocaleTag } from "../config/languages";
 
 const MyOrders = () => {
     const { user } = useContext(AuthContext);
@@ -58,7 +59,7 @@ const MyOrders = () => {
                             {o.created_at && (
                                 <p>
                                     <strong>{t.orders.date}:</strong>{" "}
-                                    {new Date(o.created_at).toLocaleString(language === "uk" ? "uk-UA" : "en-US")}
+                                    {new Date(o.created_at).toLocaleString(getLocaleTag(language))}
                                 </p>
                             )}
                             {o.items?.map((item) => (
