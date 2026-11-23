@@ -42,6 +42,15 @@ const Cart = () => {
         }
     };
 
+    const handleClearCart = async () => {
+        try {
+            await clearCart();
+            showToast(t.cart.cartCleared, "success");
+        } catch {
+            showToast(t.cart.clearError, "error");
+        }
+    };
+
     const total = cartItems.reduce(
         (sum, item) => sum + item.quantity * (item.product?.price || 0),
         0
@@ -55,7 +64,7 @@ const Cart = () => {
             {cartItems.length === 0 ? (
                 <p>{t.cart.empty}</p>
             ) : (
-                <>
+                <div className="cart-layout">
                     <ul className="cart-list">
                         {cartItems.map((item) => (
                             <li key={item.product_id} className="cart-item">
@@ -67,24 +76,28 @@ const Cart = () => {
                                 <div className="cart-item-info">
                                     <h3>{item.product?.title}</h3>
                                     <p>{item.product?.price} $ {t.cart.perPcs}</p>
-                                    <div>
+                                    <div className="cart-item-controls">
+                                        <div className="quantity-controls">
+                                            <button
+                                                type="button"
+                                                className="button qty-btn"
+                                                onClick={() => handleDecrement(item.product_id, item.quantity)}
+                                            >
+                                                -
+                                            </button>
+                                            <span className="qty-value">{item.quantity}</span>
+                                            <button
+                                                type="button"
+                                                className="button qty-btn"
+                                                onClick={() => handleIncrement(item.product_id)}
+                                            >
+                                                +
+                                            </button>
+                                        </div>
                                         <button
-                                            className="button"
-                                            onClick={() => handleDecrement(item.product_id, item.quantity)}
-                                        >
-                                            -
-                                        </button>
-                                        <span style={{ margin: "0 10px" }}>{item.quantity}</span>
-                                        <button
-                                            className="button"
-                                            onClick={() => handleIncrement(item.product_id)}
-                                        >
-                                            +
-                                        </button>
-                                        <button
-                                            className="button"
+                                            type="button"
+                                            className="button button-danger"
                                             onClick={() => handleRemove(item.product_id)}
-                                            style={{ marginLeft: "10px", backgroundColor: "#dc3545" }}
                                         >
                                             {t.cart.delete}
                                         </button>
@@ -94,32 +107,27 @@ const Cart = () => {
                         ))}
                     </ul>
 
-                    <div className="cart-actions">
+                    <div className="cart-summary-box">
                         <h2>{t.cart.totalCost}: {total} $</h2>
-                        <button
-                            className="button"
-                            style={{ backgroundColor: "#6c757d" }}
-                            onClick={async () => {
-                                try {
-                                    await clearCart();
-                                    showToast(t.cart.cartCleared, "success");
-                                } catch {
-                                    showToast(t.cart.clearError, "error");
-                                }
-                            }}
-                        >
-                            {t.cart.clearCart}
-                        </button>
+                        <div className="cart-summary-buttons">
+                            <button
+                                type="button"
+                                className="button button-secondary"
+                                onClick={handleClearCart}
+                            >
+                                {t.cart.clearCart}
+                            </button>
 
-                        <button
-                            className="button"
-                            style={{ marginLeft: "10px" }}
-                            onClick={() => navigate("/checkout")}
-                        >
-                            {t.cart.proceedToCheckout}
-                        </button>
+                            <button
+                                type="button"
+                                className="button"
+                                onClick={() => navigate("/checkout")}
+                            >
+                                {t.cart.proceedToCheckout}
+                            </button>
+                        </div>
                     </div>
-                </>
+                </div>
             )}
         </div>
     );

@@ -31,6 +31,12 @@ const AdminProducts = () => {
     const [imageFile, setImageFile] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
+    // Пошук, фільтрація та мобільна панель фільтрів у списку товарів адміна
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filterCategoryId, setFilterCategoryId] = useState("");
+    const [stockFilter, setStockFilter] = useState("all");
+    const [isAdminFiltersOpen, setIsAdminFiltersOpen] = useState(false);
+
     const fetchProducts = async () => {
         try {
             const response = await productService.getAll({ limit: 100 });
@@ -218,14 +224,37 @@ const AdminProducts = () => {
         }
     };
 
+    const activeAdminFiltersCount = [filterCategoryId, stockFilter !== "all" ? stockFilter : ""].filter(
+        Boolean
+    ).length;
+
+    const filteredProducts = products.filter((product) => {
+        const matchesQuery =
+            !searchQuery.trim() ||
+            product.title?.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+            String(product.id).includes(searchQuery.trim());
+
+        const matchesCategory =
+            !filterCategoryId || String(product.category_id) === String(filterCategoryId);
+
+        const matchesStock =
+            stockFilter === "all" ||
+            (stockFilter === "in_stock" && Number(product.stock) > 0) ||
+            (stockFilter === "out_of_stock" && Number(product.stock) <= 0);
+
+        return matchesQuery && matchesCategory && matchesStock;
+    });
+
     return (
         <div className="page">
-            <h1>{t.admin.title}</h1>
+            <div className="page-header">
+                <h1>{t.admin.title}</h1>
+            </div>
 
-            <form className="form" onSubmit={handleCreate} style={{ marginBottom: "40px" }}>
+            <form className="form admin-create-form" onSubmit={handleCreate}>
                 <h3>{t.admin.createTitle}</h3>
 
-                <label style={{ fontWeight: 600 }}>{t.admin.fieldTitle}</label>
+                <label className="admin-field-label">{t.admin.fieldTitle}</label>
                 <input
                     type="text"
                     name="title"
@@ -236,7 +265,7 @@ const AdminProducts = () => {
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>{t.admin.fieldDescription}</label>
+                <label className="admin-field-label">{t.admin.fieldDescription}</label>
                 <textarea
                     name="description"
                     placeholder={t.admin.descriptionPlaceholder}
@@ -246,7 +275,7 @@ const AdminProducts = () => {
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>{t.admin.fieldPrice}</label>
+                <label className="admin-field-label">{t.admin.fieldPrice}</label>
                 <input
                     type="number"
                     step="0.01"
@@ -259,7 +288,7 @@ const AdminProducts = () => {
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>{t.admin.fieldStock}</label>
+                <label className="admin-field-label">{t.admin.fieldStock}</label>
                 <input
                     type="number"
                     min="0"
@@ -271,7 +300,7 @@ const AdminProducts = () => {
                     className="input"
                 />
 
-                <label style={{ fontWeight: 600 }}>{t.admin.fieldCategory}</label>
+                <label className="admin-field-label">{t.admin.fieldCategory}</label>
                 <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
@@ -298,32 +327,22 @@ const AdminProducts = () => {
                     />
                 )}
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "6px" }}>
-                    <label style={{ fontWeight: 600 }}>
+                <div className="admin-specs-header">
+                    <label className="admin-field-label">
                         {t.admin.fieldSpecs}
                     </label>
-                    <div style={{ display: "flex", gap: "6px" }}>
+                    <div className="admin-mode-switch">
                         <button
                             type="button"
-                            className="button"
+                            className={`button ${specMode === "pairs" ? "" : "button-secondary"}`}
                             onClick={() => switchSpecMode("pairs")}
-                            style={{
-                                padding: "4px 10px",
-                                fontSize: "12px",
-                                backgroundColor: specMode === "pairs" ? "#0d6efd" : "#6c757d",
-                            }}
                         >
                             {t.admin.modePairs}
                         </button>
                         <button
                             type="button"
-                            className="button"
+                            className={`button ${specMode === "json" ? "" : "button-secondary"}`}
                             onClick={() => switchSpecMode("json")}
-                            style={{
-                                padding: "4px 10px",
-                                fontSize: "12px",
-                                backgroundColor: specMode === "json" ? "#0d6efd" : "#6c757d",
-                            }}
                         >
                             {t.admin.modeJson}
                         </button>
@@ -331,16 +350,15 @@ const AdminProducts = () => {
                 </div>
 
                 {specMode === "pairs" ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div className="admin-pairs-list">
                         {specPairs.map((pair, idx) => (
-                            <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                            <div key={idx} className="admin-pair-row">
                                 <input
                                     type="text"
                                     placeholder={t.admin.specKeyPlaceholder}
                                     value={pair.key}
                                     onChange={(e) => handleSpecPairChange(idx, "key", e.target.value)}
                                     className="input"
-                                    style={{ marginBottom: 0, flex: 1 }}
                                 />
                                 <input
                                     type="text"
@@ -348,14 +366,12 @@ const AdminProducts = () => {
                                     value={pair.value}
                                     onChange={(e) => handleSpecPairChange(idx, "value", e.target.value)}
                                     className="input"
-                                    style={{ marginBottom: 0, flex: 1 }}
                                 />
                                 {specPairs.length > 1 && (
                                     <button
                                         type="button"
-                                        className="button"
+                                        className="button button-danger"
                                         onClick={() => removeSpecPair(idx)}
-                                        style={{ backgroundColor: "#dc3545", padding: "8px 12px" }}
                                     >
                                         ✕
                                     </button>
@@ -364,9 +380,8 @@ const AdminProducts = () => {
                         ))}
                         <button
                             type="button"
-                            className="button"
+                            className="button button-secondary admin-add-spec-btn"
                             onClick={addSpecPair}
-                            style={{ backgroundColor: "#6c757d", alignSelf: "flex-start", padding: "6px 12px", fontSize: "13px" }}
                         >
                             {t.admin.addSpecBtn}
                         </button>
@@ -377,12 +392,11 @@ const AdminProducts = () => {
                         value={rawJsonSpecs}
                         onChange={(e) => setRawJsonSpecs(e.target.value)}
                         rows={4}
-                        className="input"
-                        style={{ fontFamily: "monospace" }}
+                        className="input admin-json-textarea"
                     />
                 )}
 
-                <label style={{ fontWeight: 600 }}>{t.admin.fieldImage}</label>
+                <label className="admin-field-label">{t.admin.fieldImage}</label>
                 <input
                     type="file"
                     accept="image/*"
@@ -395,49 +409,121 @@ const AdminProducts = () => {
                 </button>
             </form>
 
-            <ul className="admin-list">
-                {products.map((product) => (
-                    <li
-                        key={product.id}
-                        className="admin-item"
-                        style={{ display: "flex", gap: "20px", alignItems: "center", justifyContent: "space-between" }}
+            <div className="admin-toolbar">
+                <div className="catalog-mobile-bar">
+                    <input
+                        type="text"
+                        className="input search-input"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t.products.searchPlaceholder}
+                    />
+                    <button
+                        type="button"
+                        className="button button-secondary mobile-filter-toggle-btn"
+                        onClick={() => setIsAdminFiltersOpen((prev) => !prev)}
+                        aria-expanded={isAdminFiltersOpen}
                     >
-                        <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                            <img
-                                src={resolveImageUrl(product.image_url, FALLBACK_IMAGE)}
-                                alt={product.title}
-                                style={{ width: "70px", height: "70px", objectFit: "cover", borderRadius: "6px" }}
-                            />
-                            <div>
-                                <h3>#{product.id} — {product.title}</h3>
-                                <p>
-                                    {t.admin.priceLabel}: {product.price} $ | {t.admin.stockLabel}: {product.stock} | {t.admin.categoryLabel}:{" "}
-                                    {product.category_name || t.admin.uncategorized}
-                                </p>
-                            </div>
-                        </div>
+                        <span>
+                            {isAdminFiltersOpen
+                                ? (t.products.hideFilters || "Сховати фільтри")
+                                : (t.products.openFilters || "Фільтри")}
+                        </span>
+                        {activeAdminFiltersCount > 0 && (
+                            <span className="filter-count-badge">{activeAdminFiltersCount}</span>
+                        )}
+                    </button>
+                </div>
 
-                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                            <label className="button" style={{ backgroundColor: "#6c757d", cursor: "pointer" }}>
-                                {t.admin.uploadImageBtn}
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    hidden
-                                    onChange={(e) => handleUploadImage(product.id, e.target.files?.[0])}
+                <div
+                    className={`catalog-filters-collapsible ${
+                        isAdminFiltersOpen ? "is-open" : ""
+                    }`}
+                >
+                    <select
+                        className="input"
+                        value={filterCategoryId}
+                        onChange={(e) => setFilterCategoryId(e.target.value)}
+                    >
+                        <option value="">{t.products.allCategories}</option>
+                        {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <select
+                        className="input"
+                        value={stockFilter}
+                        onChange={(e) => setStockFilter(e.target.value)}
+                    >
+                        <option value="all">{t.admin.allStock || "Усі товари"}</option>
+                        <option value="in_stock">{t.products.inStock}</option>
+                        <option value="out_of_stock">{t.products.outOfStock}</option>
+                    </select>
+
+                    {(searchQuery || filterCategoryId || stockFilter !== "all") && (
+                        <button
+                            type="button"
+                            className="button button-secondary"
+                            onClick={() => {
+                                setSearchQuery("");
+                                setFilterCategoryId("");
+                                setStockFilter("all");
+                            }}
+                        >
+                            {t.admin.resetFilters || "Скинути"}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {filteredProducts.length === 0 ? (
+                <p>{t.products.notFound}</p>
+            ) : (
+                <ul className="admin-list">
+                    {filteredProducts.map((product) => (
+                        <li key={product.id} className="admin-item admin-product-row">
+                            <div className="admin-product-main">
+                                <img
+                                    src={resolveImageUrl(product.image_url, FALLBACK_IMAGE)}
+                                    alt={product.title}
+                                    className="admin-product-thumb"
                                 />
-                            </label>
-                            <button
-                                className="button"
-                                style={{ backgroundColor: "#dc3545" }}
-                                onClick={() => handleDelete(product.id)}
-                            >
-                                {t.admin.deleteBtn}
-                            </button>
-                        </div>
-                    </li>
-                ))}
-            </ul>
+                                <div className="admin-product-details">
+                                    <h3 className="admin-product-title">
+                                        #{product.id} — {product.title}
+                                    </h3>
+                                    <p className="admin-product-meta">
+                                        {t.admin.priceLabel}: {product.price} $ | {t.admin.stockLabel}: {product.stock} | {t.admin.categoryLabel}:{" "}
+                                        {product.category_name || t.admin.uncategorized}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="admin-product-actions">
+                                <label className="button button-secondary admin-upload-label">
+                                    {t.admin.uploadImageBtn}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        hidden
+                                        onChange={(e) => handleUploadImage(product.id, e.target.files?.[0])}
+                                    />
+                                </label>
+                                <button
+                                    type="button"
+                                    className="button button-danger"
+                                    onClick={() => handleDelete(product.id)}
+                                >
+                                    {t.admin.deleteBtn}
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 };

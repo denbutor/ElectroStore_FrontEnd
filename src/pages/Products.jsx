@@ -12,6 +12,7 @@ const Products = () => {
     const [minPrice, setMinPrice] = useState("");
     const [maxPrice, setMaxPrice] = useState("");
     const [sortOption, setSortOption] = useState("");
+    const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
     const fetchCategories = async () => {
         try {
@@ -44,6 +45,7 @@ const Products = () => {
     const handleFilter = (e) => {
         e.preventDefault();
         fetchProducts(categoryId);
+        setIsMobileFiltersOpen(false);
     };
 
     const handleCategoryChange = (e) => {
@@ -51,6 +53,13 @@ const Products = () => {
         setCategoryId(value);
         fetchProducts(value);
     };
+
+    const activeFiltersCount = [
+        categoryId,
+        minPrice,
+        maxPrice,
+        sortOption,
+    ].filter(Boolean).length;
 
     const filteredAndSorted = products
         .filter((p) =>
@@ -65,61 +74,84 @@ const Products = () => {
 
     return (
         <div className="page">
-            <h1>{t.products.title}</h1>
+            <div className="page-header">
+                <h1>{t.products.title}</h1>
+            </div>
 
-            <form
-                onSubmit={handleFilter}
-                className="search-bar"
-                style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}
-            >
-                <input
-                    className="input"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder={t.products.searchPlaceholder}
-                />
-                <select
-                    className="input"
-                    value={categoryId}
-                    onChange={handleCategoryChange}
-                >
-                    <option value="">{t.products.allCategories}</option>
-                    {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                        </option>
-                    ))}
-                </select>
-                <input
-                    className="input"
-                    type="number"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    placeholder={t.products.minPrice}
-                    style={{ width: "130px" }}
-                />
-                <input
-                    className="input"
-                    type="number"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    placeholder={t.products.maxPrice}
-                    style={{ width: "130px" }}
-                />
-                <button type="submit" className="button">
-                    {t.products.filter}
-                </button>
+            <form onSubmit={handleFilter} className="search-bar">
+                <div className="catalog-mobile-bar">
+                    <input
+                        className="input search-input"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder={t.products.searchPlaceholder}
+                    />
+                    <button
+                        type="button"
+                        className="button button-secondary mobile-filter-toggle-btn"
+                        onClick={() => setIsMobileFiltersOpen((prev) => !prev)}
+                        aria-expanded={isMobileFiltersOpen}
+                    >
+                        <span>
+                            {isMobileFiltersOpen
+                                ? (t.products.hideFilters || "Сховати фільтри")
+                                : (t.products.openFilters || "Фільтри")}
+                        </span>
+                        {activeFiltersCount > 0 && (
+                            <span className="filter-count-badge">{activeFiltersCount}</span>
+                        )}
+                    </button>
+                </div>
 
-                <select
-                    className="input"
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value)}
+                <div
+                    className={`catalog-filters-collapsible ${
+                        isMobileFiltersOpen ? "is-open" : ""
+                    }`}
                 >
-                    <option value="">{t.products.sortBy}</option>
-                    <option value="price-asc">{t.products.priceAsc}</option>
-                    <option value="price-desc">{t.products.priceDesc}</option>
-                    <option value="title">{t.products.titleAsc}</option>
-                </select>
+                    <select
+                        className="input"
+                        value={categoryId}
+                        onChange={handleCategoryChange}
+                    >
+                        <option value="">{t.products.allCategories}</option>
+                        {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                                {cat.name}
+                            </option>
+                        ))}
+                    </select>
+
+                    <input
+                        className="input price-input"
+                        type="number"
+                        value={minPrice}
+                        onChange={(e) => setMinPrice(e.target.value)}
+                        placeholder={t.products.minPrice}
+                    />
+
+                    <input
+                        className="input price-input"
+                        type="number"
+                        value={maxPrice}
+                        onChange={(e) => setMaxPrice(e.target.value)}
+                        placeholder={t.products.maxPrice}
+                    />
+
+                    <select
+                        className="input"
+                        value={sortOption}
+                        onChange={(e) => setSortOption(e.target.value)}
+                    >
+                        <option value="">{t.products.sortBy}</option>
+                        <option value="price-asc">{t.products.priceAsc}</option>
+                        <option value="price-desc">{t.products.priceDesc}</option>
+                        <option value="title">{t.products.titleAsc}</option>
+                    </select>
+
+                    <button type="submit" className="button">
+                        {t.products.filter}
+                    </button>
+                </div>
             </form>
 
             {filteredAndSorted.length === 0 ? (
