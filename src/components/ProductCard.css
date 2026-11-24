@@ -135,3 +135,28 @@
 .product-add-btn {
     width: 100%;
 }
+
+.product-card-buttons-row {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+}
+
+.product-card-buttons-row .product-add-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.product-ai-btn {
+    flex: 0 0 auto;
+    padding-left: 10px;
+    padding-right: 10px;
+    white-space: nowrap;
+}
+
+.product-ai-btn.is-attached {
+    border-color: #22c55e;
+    color: #15803d;
+    background-color: #f0fdf4;
+}

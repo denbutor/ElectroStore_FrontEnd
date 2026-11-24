@@ -34,6 +34,7 @@ export const streamAiChat = async ({
     const token = localStorage.getItem("access_token");
     const headers = {
         "Content-Type": "application/json",
+        Accept: "text/event-stream",
     };
     if (token) {
         headers.Authorization = `Bearer ${token}`;
@@ -41,12 +42,19 @@ export const streamAiChat = async ({
 
     let checkingPrefix = Boolean(allowUiLangSwitch);
     let prefixBuffer = "";
+    let receivedAnyText = false;
+
+    const emitText = (text) => {
+        if (!text) return;
+        receivedAnyText = true;
+        onChunk?.(text);
+    };
 
     const handleIncomingText = (textChunk) => {
         if (!textChunk) return;
 
         if (!checkingPrefix) {
-            onChunk?.(textChunk);
+            emitText(textChunk);
             return;
         }
 
@@ -57,7 +65,7 @@ export const streamAiChat = async ({
             checkingPrefix = false;
             const toEmit = prefixBuffer;
             prefixBuffer = "";
-            onChunk?.(toEmit);
+            emitText(toEmit);
             return;
         }
 
@@ -65,7 +73,7 @@ export const streamAiChat = async ({
             checkingPrefix = false;
             const toEmit = prefixBuffer;
             prefixBuffer = "";
-            onChunk?.(toEmit);
+            emitText(toEmit);
             return;
         }
 
@@ -79,7 +87,7 @@ export const streamAiChat = async ({
             const remaining = prefixBuffer.slice(match[0].length);
             prefixBuffer = "";
             if (remaining) {
-                onChunk?.(remaining);
+                emitText(remaining);
             }
             return;
         }
@@ -88,7 +96,7 @@ export const streamAiChat = async ({
             checkingPrefix = false;
             const toEmit = prefixBuffer;
             prefixBuffer = "";
-            onChunk?.(toEmit);
+            emitText(toEmit);
         }
     };
 
@@ -98,7 +106,7 @@ export const streamAiChat = async ({
             const cleaned = prefixBuffer.replace(UI_LANG_TAG_RE, "");
             prefixBuffer = "";
             if (cleaned) {
-                onChunk?.(cleaned);
+                emitText(cleaned);
             }
         }
     };
@@ -120,7 +128,7 @@ export const streamAiChat = async ({
             }),
         });
 
-        if (!response.ok) {
+        if (!response.ok || !response.body) {
             throw new Error(`HTTP error ${response.status}`);
         }
 
@@ -131,7 +139,10 @@ export const streamAiChat = async ({
 
         while (true) {
             const { value, done } = await reader.read();
-            if (done) break;
+            if (done) {
+                buffer += decoder.decode();
+                break;
+            }
 
             buffer += decoder.decode(value, { stream: true });
             const blocks = buffer.split(/\r?\n\r?\n/);
@@ -153,16 +164,24 @@ export const streamAiChat = async ({
         }
 
         if (buffer.trim()) {
-            const tail = parseSseBlock(buffer);
-            if (tail && tail.trim() !== "[DONE]") {
+            const remainingBlocks = buffer.split(/\r?\n\r?\n/);
+            for (const block of remainingBlocks) {
+                const tail = parseSseBlock(block);
+                if (tail === null) continue;
+                if (tail.trim() === "[DONE]") {
+                    finished = true;
+                    break;
+                }
                 handleIncomingText(tail);
             }
         }
 
-        if (!finished) {
-            flushRemainingBuffer();
-            onDone?.();
+        flushRemainingBuffer();
+
+        if (!finished && receivedAnyText) {
+            emitText("\n\n⚠️ [Відповідь перервано через розрив з'єднання]");
         }
+        onDone?.();
     } catch (err) {
         flushRemainingBuffer();
         onError?.(err);

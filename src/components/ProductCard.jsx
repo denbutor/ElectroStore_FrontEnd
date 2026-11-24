@@ -3,21 +3,24 @@ import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
 import { LanguageContext } from "../context/LanguageContext";
+import { AiProductsContext, MAX_CHAT_PRODUCTS } from "../context/AiProductsContext";
 import { Link, useNavigate } from "react-router-dom";
 import { resolveImageUrl } from "../utils/image";
 import "./ProductCard.css";
 
 const FALLBACK_IMAGE = "https://placehold.co/400x300?text=No+Image";
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onOpenChat }) => {
     const { addToCart } = useContext(CartContext);
     const { isAuthenticated } = useContext(AuthContext);
     const { showToast } = useContext(ToastContext);
     const { t } = useContext(LanguageContext);
+    const { attachedProducts, attachProduct } = useContext(AiProductsContext);
     const [quantity, setQuantity] = useState(1);
     const navigate = useNavigate();
 
     const isInStock = product.stock > 0;
+    const isAttached = attachedProducts.some((item) => Number(item.id) === Number(product.id));
 
     const handleAdd = async () => {
         if (!isAuthenticated) {
@@ -30,6 +33,23 @@ const ProductCard = ({ product }) => {
             showToast(t.products.addedToCart, "success");
         } catch {
             showToast(t.products.addError, "error");
+        }
+    };
+
+    const handleAskAi = () => {
+        const result = attachProduct(product, onOpenChat);
+        if (result.limitReached) {
+            showToast(
+                (t.chat.maxProductsError || "Максимум {max} товарів за одне повідомлення").replace(
+                    "{max}",
+                    String(MAX_CHAT_PRODUCTS)
+                ),
+                "error"
+            );
+            return;
+        }
+        if (result.added) {
+            showToast(t.chat.productAddedToChat || "Товар додано до чату з AI", "success");
         }
     };
 
@@ -53,6 +73,7 @@ const ProductCard = ({ product }) => {
                     </span>
                 </div>
             </Link>
+
             <div className="product-card-actions">
                 <div className="quantity-controls">
                     <button
@@ -73,14 +94,25 @@ const ProductCard = ({ product }) => {
                         +
                     </button>
                 </div>
-                <button
-                    type="button"
-                    className="button product-add-btn"
-                    onClick={handleAdd}
-                    disabled={!isInStock}
-                >
-                    {t.products.addToCart}
-                </button>
+
+                <div className="product-card-buttons-row">
+                    <button
+                        type="button"
+                        className="button product-add-btn"
+                        onClick={handleAdd}
+                        disabled={!isInStock}
+                    >
+                        {t.products.addToCart}
+                    </button>
+                    <button
+                        type="button"
+                        className={`button button-secondary product-ai-btn ${isAttached ? "is-attached" : ""}`}
+                        onClick={handleAskAi}
+                        title={t.chat.askAboutProduct || "Спитати AI про товар"}
+                    >
+                        {isAttached ? `✓ ${t.chat.inChat || "У чаті"}` : `🤖 ${t.chat.askAiShort || "AI"}`}
+                    </button>
+                </div>
             </div>
         </article>
     );

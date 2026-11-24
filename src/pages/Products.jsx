@@ -3,7 +3,7 @@ import productService from "../services/productService";
 import ProductCard from "../components/ProductCard";
 import { LanguageContext } from "../context/LanguageContext";
 
-const Products = () => {
+const Products = ({ onOpenChat }) => {
     const { t } = useContext(LanguageContext);
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -159,7 +159,11 @@ const Products = () => {
             ) : (
                 <div className="products-grid">
                     {filteredAndSorted.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard
+                            key={product.id}
+                            product={product}
+                            onOpenChat={onOpenChat}
+                        />
                     ))}
                 </div>
             )}

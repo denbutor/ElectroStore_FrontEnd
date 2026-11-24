@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, Fragment, useContext } from "react";
+import { Link } from "react-router-dom";
 import { streamAiChat, MAX_CHAT_IMAGES } from "../services/aiService";
 import { LanguageContext } from "../context/LanguageContext";
 import { ToastContext } from "../context/ToastContext";
+import { AiProductsContext } from "../context/AiProductsContext";
 import { getTranslations } from "../utils/translations";
 import "./AiChatDrawer.css";
 
@@ -13,7 +15,6 @@ const MAX_IMAGE_DIMENSION = 1280;
 const JPEG_QUALITY = 0.82;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-// Межі розмірів: менший мінімум за колишні 390x550 і розумний максимум
 const MIN_WIDTH = 280;
 const MIN_HEIGHT = 340;
 const DEFAULT_WIDTH = 390;
@@ -149,6 +150,14 @@ const compressImageFile = (file) =>
         reader.readAsDataURL(file);
     });
 
+const formatProductsPromptContext = (products) => {
+    if (!Array.isArray(products) || products.length === 0) return "";
+    const lines = products.map(
+        (p, idx) => `${idx + 1}. ${p.title} (ID: ${p.id}, ${p.price} $) — ${p.url}`
+    );
+    return `\n\nПрикріплені товари:\n${lines.join("\n")}`;
+};
+
 const renderInlineBold = (text) => {
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
@@ -182,6 +191,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         unlockAiLanguage,
     } = useContext(LanguageContext);
     const { showToast } = useContext(ToastContext);
+    const { attachedProducts, detachProduct, clearAttachedProducts } = useContext(AiProductsContext);
 
     const [, setSessionId] = useState(() => getOrCreateSessionId());
     const [modelType, setModelType] = useState(
@@ -217,7 +227,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isOpen]);
+    }, [messages, isOpen, attachedProducts.length]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -248,9 +258,6 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                 const state = dragStateRef.current;
                 if (!state) return;
 
-                // Права й верхня сторони зафіксовані:
-                // - лівий край рухається вліво (dx < 0) => ширина зростає
-                // - нижній край рухається вниз (dy > 0) => висота зростає
                 const dx = moveEvent.clientX - state.startX;
                 const dy = moveEvent.clientY - state.startY;
 
@@ -304,6 +311,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         setSessionId(freshId);
         unlockAiLanguage();
         setSelectedImages([]);
+        clearAttachedProducts();
         setMessages([
             {
                 role: "assistant",
@@ -321,7 +329,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         const remainingSlots = MAX_CHAT_IMAGES - selectedImages.length;
         if (remainingSlots <= 0) {
             showToast(
-                (t.chat.maxImagesError || "Max {max} photos per message").replace(
+                (t.chat.maxImagesError || "Максимум {max} фото за одне повідомлення").replace(
                     "{max}",
                     String(MAX_CHAT_IMAGES)
                 ),
@@ -333,7 +341,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         const toProcess = files.slice(0, remainingSlots);
         if (files.length > remainingSlots) {
             showToast(
-                (t.chat.maxImagesError || "Max {max} photos per message").replace(
+                (t.chat.maxImagesError || "Максимум {max} фото за одне повідомлення").replace(
                     "{max}",
                     String(MAX_CHAT_IMAGES)
                 ),
@@ -345,7 +353,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         for (const file of toProcess) {
             if (!ALLOWED_MIME_TYPES.has(file.type)) {
                 showToast(
-                    t.chat.unsupportedFormatError || "Supported formats: JPEG, PNG, WEBP",
+                    t.chat.unsupportedFormatError || "Підтримуються лише формати JPEG, PNG, WEBP",
                     "error"
                 );
                 continue;
@@ -355,7 +363,7 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                 compressedList.push(processed);
             } catch {
                 showToast(
-                    t.chat.imageProcessError || "Failed to process image",
+                    t.chat.imageProcessError || "Не вдалося обробити зображення",
                     "error"
                 );
             }
@@ -374,30 +382,48 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         e.preventDefault();
         const trimmed = input.trim();
         const imagesToSend = [...selectedImages];
-        if ((!trimmed && imagesToSend.length === 0) || isStreaming) return;
+        const productsToSend = [...attachedProducts];
+
+        if ((!trimmed && imagesToSend.length === 0 && productsToSend.length === 0) || isStreaming) {
+            return;
+        }
 
         const currentSession = getOrCreateSessionId();
         setSessionId(currentSession);
+
+        const defaultPrompt =
+            productsToSend.length > 0
+                ? (t.chat.defaultProductPrompt || "Розкажи детально про прикріплені товари")
+                : "";
+        const displayText = trimmed || defaultPrompt;
+        const promptForAi = `${displayText}${formatProductsPromptContext(productsToSend)}`.trim();
 
         setMessages((prev) => [
             ...prev,
             {
                 role: "user",
-                content: trimmed,
+                content: displayText,
                 images: imagesToSend.map((img) => ({
                     id: img.id,
                     previewUrl: img.previewUrl,
+                })),
+                products: productsToSend.map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    imageUrl: p.imageUrl,
+                    url: p.url,
                 })),
             },
             { role: "assistant", content: "" },
         ]);
         setInput("");
         setSelectedImages([]);
+        clearAttachedProducts();
         setIsStreaming(true);
 
         await streamAiChat({
             sessionId: currentSession,
-            message: trimmed,
+            message: promptForAi,
             images: imagesToSend,
             modelType,
             preferredLang: language,
@@ -438,7 +464,11 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
         });
     };
 
-    const canSubmit = !isStreaming && (Boolean(input.trim()) || selectedImages.length > 0);
+    const canSubmit =
+        !isStreaming &&
+        (Boolean(input.trim()) || selectedImages.length > 0 || attachedProducts.length > 0);
+
+    const hasDraftAttachments = selectedImages.length > 0 || attachedProducts.length > 0;
 
     return (
         <aside
@@ -537,6 +567,27 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                                 ))}
                             </div>
                         )}
+                        {Array.isArray(msg.products) && msg.products.length > 0 && (
+                            <div className="ai-msg-products">
+                                {msg.products.map((prod) => (
+                                    <Link
+                                        key={prod.id}
+                                        to={`/products/${prod.id}`}
+                                        onClick={onClose}
+                                        className="ai-msg-product-chip"
+                                    >
+                                        <img
+                                            src={prod.imageUrl}
+                                            alt={prod.title}
+                                            className="ai-msg-product-thumb"
+                                        />
+                                        <span className="ai-msg-product-label">
+                                            {prod.title}
+                                        </span>
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
                         {msg.content ? (
                             msg.role === "assistant" ? (
                                 <FormattedMessage content={msg.content} />
@@ -553,8 +604,30 @@ const AiChatDrawer = ({ isOpen, onClose }) => {
                 <div ref={messagesEndRef} />
             </div>
 
-            {selectedImages.length > 0 && (
+            {hasDraftAttachments && (
                 <div className="ai-chat-draft-attachments">
+                    {attachedProducts.map((prod) => (
+                        <div key={`prod_${prod.id}`} className="ai-draft-product-item">
+                            <img
+                                src={prod.imageUrl}
+                                alt={prod.title}
+                                className="ai-draft-product-thumb"
+                            />
+                            <span className="ai-draft-product-title" title={prod.title}>
+                                {prod.title}
+                            </span>
+                            <button
+                                type="button"
+                                className="ai-draft-remove-btn"
+                                onClick={() => detachProduct(prod.id)}
+                                disabled={isStreaming}
+                                aria-label={t.chat.removeProduct || "Remove product"}
+                                title={t.chat.removeProduct || "Remove product"}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ))}
                     {selectedImages.map((img) => (
                         <div key={img.id} className="ai-draft-item">
                             <img src={img.previewUrl} alt="Preview" className="ai-draft-thumb" />

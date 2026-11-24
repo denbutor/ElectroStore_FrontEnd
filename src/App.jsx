@@ -18,6 +18,8 @@ import AiChatDrawer from "./components/AiChatDrawer.jsx";
 const App = () => {
     const [isChatOpen, setIsChatOpen] = useState(false);
 
+    const openChat = () => setIsChatOpen(true);
+
     return (
         <div className="app">
             <Header
@@ -31,8 +33,8 @@ const App = () => {
             <main>
                 <Routes>
                     <Route path="/" element={<Home />} />
-                    <Route path="/products" element={<Products />} />
-                    <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/products" element={<Products onOpenChat={openChat} />} />
+                    <Route path="/products/:id" element={<ProductDetail onOpenChat={openChat} />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route

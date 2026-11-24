@@ -299,3 +299,79 @@
         padding: 10px 12px;
     }
 }
+
+/* Залиш свій оригінальний AiChatDrawer.css без змін,
+   а в самий кінець файлу додай лише ці стилі для чіпів товарів: */
+
+.ai-msg-products {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.ai-msg-product-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.ai-msg-product-chip:hover {
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.ai-msg-product-thumb {
+    width: 34px;
+    height: 34px;
+    border-radius: 5px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #ffffff;
+}
+
+.ai-msg-product-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ai-draft-product-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 185px;
+    height: 58px;
+    padding: 4px 24px 4px 4px;
+    border-radius: 6px;
+    border: 1px solid #93c5fd;
+    background: #eff6ff;
+}
+
+.ai-draft-product-thumb {
+    width: 48px;
+    height: 48px;
+    border-radius: 5px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #ffffff;
+}
+
+.ai-draft-product-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

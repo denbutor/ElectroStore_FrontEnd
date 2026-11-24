@@ -5,17 +5,19 @@ import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
 import { ToastContext } from "../context/ToastContext";
 import { LanguageContext } from "../context/LanguageContext";
+import { AiProductsContext, MAX_CHAT_PRODUCTS } from "../context/AiProductsContext";
 import { resolveImageUrl } from "../utils/image";
 
 const FALLBACK_IMAGE = "https://placehold.co/400x400?text=No+Image";
 
-const ProductDetail = () => {
+const ProductDetail = ({ onOpenChat }) => {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const { addToCart } = useContext(CartContext);
     const { isAuthenticated } = useContext(AuthContext);
     const { showToast } = useContext(ToastContext);
     const { t } = useContext(LanguageContext);
+    const { attachedProducts, attachProduct } = useContext(AiProductsContext);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,6 +30,7 @@ const ProductDetail = () => {
     if (!product) return <div className="page"><p>{t.productDetail.loading}</p></div>;
 
     const specs = product.specifications ? Object.entries(product.specifications) : [];
+    const isAttached = attachedProducts.some((item) => Number(item.id) === Number(product.id));
 
     const handleAdd = async () => {
         if (!isAuthenticated) {
@@ -40,6 +43,23 @@ const ProductDetail = () => {
             showToast(t.productDetail.addedToCart, "success");
         } catch {
             showToast(t.productDetail.addFailed, "error");
+        }
+    };
+
+    const handleAskAi = () => {
+        const result = attachProduct(product, onOpenChat);
+        if (result.limitReached) {
+            showToast(
+                (t.chat.maxProductsError || "Максимум {max} товарів за одне повідомлення").replace(
+                    "{max}",
+                    String(MAX_CHAT_PRODUCTS)
+                ),
+                "error"
+            );
+            return;
+        }
+        if (result.added) {
+            showToast(t.chat.productAddedToChat || "Товар додано до чату з AI", "success");
         }
     };
 
@@ -73,13 +93,25 @@ const ProductDetail = () => {
                         </div>
                     )}
 
-                    <button
-                        className="button"
-                        disabled={product.stock === 0}
-                        onClick={handleAdd}
-                    >
-                        {t.productDetail.addToCart}
-                    </button>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                        <button
+                            type="button"
+                            className="button"
+                            disabled={product.stock === 0}
+                            onClick={handleAdd}
+                        >
+                            {t.productDetail.addToCart}
+                        </button>
+                        <button
+                            type="button"
+                            className="button button-secondary"
+                            onClick={handleAskAi}
+                        >
+                            {isAttached
+                                ? `✓ ${t.chat.inChat || "У чаті"}`
+                                : `🤖 ${t.chat.askAboutProduct || "Спитати AI про товар"}`}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
